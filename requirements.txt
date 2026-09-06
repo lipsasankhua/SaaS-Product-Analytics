@@ -1,0 +1,8 @@
+pandas
+faker
+numpy
+streamlit
+plotly
+psycopg2-binary
+sqlalchemy
+jupyter
