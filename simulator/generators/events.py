@@ -134,4 +134,26 @@ def generate_events(users_df: pd.DataFrame, accounts_df: pd.DataFrame, journeys:
                 "plan": plan,
             })
 
-        #
+        # 3. Feature usage events
+        for event in _feature_used_events(row.user_id, journey, device, country, plan):
+            event["user_id"] = row.user_id
+            records.append(event)
+
+    df = pd.DataFrame(records)
+    df = df.sort_values("event_timestamp").reset_index(drop=True)
+    df.insert(0, "event_id", range(1, len(df) + 1))
+    return df
+
+
+if __name__ == "__main__":
+    from users import generate_users
+    from accounts import generate_accounts
+    from subscriptions import generate_subscriptions
+
+    users_df = generate_users()
+    accounts_df = generate_accounts(users_df)
+    subs_df, journeys = generate_subscriptions(users_df, accounts_df)
+    events_df = generate_events(users_df, accounts_df, journeys)
+
+    print(events_df.head(10))
+    print(f"\nGenerated {len(events_df)} events for {len(users_df)} users")
