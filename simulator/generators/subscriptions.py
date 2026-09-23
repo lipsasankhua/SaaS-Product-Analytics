@@ -51,8 +51,10 @@ def generate_subscriptions(users_df: pd.DataFrame, accounts_df: pd.DataFrame) ->
 
         if converted:
             status = "canceled" if journey["canceled_at"] else "active"
+            canceled_at = journey["canceled_at"]
         else:
             status = "canceled"  # trial expired without converting
+            canceled_at = trial_end
 
         records.append({
             "subscription_id": subscription_id,
@@ -61,7 +63,7 @@ def generate_subscriptions(users_df: pd.DataFrame, accounts_df: pd.DataFrame) ->
             "status": status,
             "started_at": trial_start,
             "trial_end_at": trial_end,
-            "canceled_at": journey["canceled_at"],
+            "canceled_at": canceled_at,
         })
         subscription_id += 1
 
