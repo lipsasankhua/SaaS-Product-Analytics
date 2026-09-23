@@ -101,7 +101,13 @@ def simulate_user_journey(user_id: int, signup_datetime: datetime, plan: str) ->
     # ---- Churn simulation (only relevant if converted to paid) ----
     canceled_at = None
     if converted_to_paid:
-        base_monthly_churn = MONTHLY_CHURN_RATE.get(plan, MONTHLY_CHURN_RATE["pro"])
+        # subscriptions.py bills every free-tier account that converts as
+        # "pro" (there's no such thing as a paid "free" plan), so churn
+        # must be simulated against that same billed plan, not the
+        # account's pre-conversion plan -- otherwise most "pro" churn
+        # would actually reflect the much higher free-tier churn rate.
+        billed_plan = "pro" if plan == "free" else plan
+        base_monthly_churn = MONTHLY_CHURN_RATE.get(billed_plan, MONTHLY_CHURN_RATE["pro"])
         # Power users churn less — apply the retention lift as a REDUCTION
         # in monthly churn probability.
         effective_churn = (
