@@ -15,6 +15,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (
+    ACTIVATION_THRESHOLD,
+    ACTIVATION_WINDOW_DAYS,
     FEATURES,
     KEY_FEATURE,
     POWER_USER_THRESHOLD,
@@ -62,6 +64,31 @@ def _feature_used_events(user_id, journey, device, country, plan):
     else:
         n_key_feature_uses = random.randint(0, POWER_USER_THRESHOLD - 1)
         n_other_uses = random.randint(0, 8)
+
+    # If this user's journey reached the "activated" funnel stage, guarantee
+    # their key-feature usage actually satisfies the derived activation
+    # definition (>= ACTIVATION_THRESHOLD uses within ACTIVATION_WINDOW_DAYS
+    # of signup) -- otherwise the funnel's internal activation roll would
+    # have no observable trace in the event stream for SQL to find.
+    # onboarding_completed always lands well within ACTIVATION_WINDOW_DAYS
+    # of signup given the funnel's timing chain, so this window is valid.
+    if "activated" in journey["timestamps"]:
+        signup_at = journey["timestamps"]["signup"]
+        activation_deadline = signup_at + timedelta(days=ACTIVATION_WINDOW_DAYS)
+        early_window_seconds = max((activation_deadline - window_start).total_seconds(), 1)
+
+        for _ in range(ACTIVATION_THRESHOLD):
+            ts = window_start + timedelta(seconds=random.uniform(0, early_window_seconds))
+            events.append({
+                "event_type": "feature_used",
+                "feature": KEY_FEATURE,
+                "event_timestamp": ts,
+                "device": device,
+                "country": country,
+                "plan": plan,
+            })
+
+        n_key_feature_uses = max(n_key_feature_uses - ACTIVATION_THRESHOLD, 0)
 
     for _ in range(n_key_feature_uses):
         offset_days = random.uniform(0, total_window_days)
