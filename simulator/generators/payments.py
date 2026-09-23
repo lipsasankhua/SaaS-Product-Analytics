@@ -37,7 +37,14 @@ def generate_payments(subscriptions_df: pd.DataFrame) -> pd.DataFrame:
         if amount == 0:
             continue  # free plan -> no billing events
 
-        start = row.started_at
+        # A subscription whose trial expired without ever converting to paid
+        # is recorded with canceled_at == trial_end_at (see subscriptions.py).
+        # Such a trial never generates a bill.
+        never_converted = pd.notna(row.canceled_at) and row.canceled_at <= row.trial_end_at
+        if never_converted:
+            continue
+
+        start = row.trial_end_at  # billing begins once the free trial ends
         end = row.canceled_at if pd.notna(row.canceled_at) else start + timedelta(days=180)
 
         cycle_start = start
