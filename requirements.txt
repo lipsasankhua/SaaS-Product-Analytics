@@ -6,3 +6,5 @@ plotly
 psycopg2-binary
 sqlalchemy
 jupyter
+python-dotenv
+nbconvert
